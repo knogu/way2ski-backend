@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "way2ski-backend/proto";
+
+package main;
+
+service WayService {
+  rpc GetLines(Params) returns (Lines);
+}
+
+message Params {
+  string hometownStation = 1;
+  string skiResort = 2;
+  bool isHoliday = 3;
+}
+
+message Leg {
+  google.protobuf.Timestamp departureTime = 1;
+  google.protobuf.Timestamp arrivalTime = 2;
+}
+
+message LineInfo {
+  string lineName = 1;
+  repeated Leg trainTimesToSki = 2;
+  repeated Leg trainTimesHome = 3;
+}
+
+message Lines {
+  repeated LineInfo lines = 1;
+}
