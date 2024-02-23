@@ -1,5 +1,5 @@
-import pprint
-from dataclasses import dataclass
+import sqlite3
+from dataclasses import dataclass, astuple
 import time
 import requests
 from bs4 import BeautifulSoup
@@ -25,7 +25,7 @@ class Leg:
 
 def get_soup(url):
     response = requests.get(url)
-    time.sleep(4)
+    time.sleep(3)
     response.encoding = 'utf-8'
     return BeautifulSoup(response.text, 'html.parser')
 
@@ -95,6 +95,25 @@ legs: list[Leg] = [
     *get_legs_from_timetable(url_from_tokyo_holidays, r"東京", r".*", "中央線", True),
     *get_legs_from_timetable(url_to_tokyo_weekdays, r".*", r"東京", "中央線", False),
     *get_legs_from_timetable(url_from_tokyo_weekdays, r"東京", r".*", "中央線", False),
+
+    # 上越新幹線
+    *get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt0285/0285031.html",
+                             r"越後湯沢", r"東京", "上越新幹線", True),
+    *get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039051.html",
+                             r"東京", r"越後湯沢", "上越新幹線", True),
+    *get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt0285/0285030.html",
+                             r"越後湯沢", r"東京", "上越新幹線", False),
+    *get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039050.html",
+                             r"東京", r"越後湯沢", "上越新幹線", False),
+
 ]
 
-pprint.pprint(legs)
+conn = sqlite3.connect('./train_bus_time.db')
+leg_tuples = [astuple(leg) for leg in legs]
+for tup in leg_tuples:
+    try:
+        conn.execute("INSERT INTO legs VALUES (?,?,?,?,?,?,?,?)", tup)
+    except sqlite3.IntegrityError:
+        pass
+conn.commit()
+conn.close()
