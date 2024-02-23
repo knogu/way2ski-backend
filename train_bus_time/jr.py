@@ -7,7 +7,7 @@ import re
 
 
 def extract_time(pattern, row):
-    match = re.search(pattern, row.find("ul").text)
+    match = re.search(pattern, row.text)
     return match.group(1) if match else None
 
 
@@ -24,8 +24,9 @@ class Leg:
 
 
 def get_soup(url):
+    print("requesting", url)
     response = requests.get(url)
-    time.sleep(3)
+    time.sleep(10)
     response.encoding = 'utf-8'
     return BeautifulSoup(response.text, 'html.parser')
 
@@ -40,10 +41,18 @@ def get_legs(url: str, departure_station_pattern: str, arrival_station_pattern: 
         station_name = row.find("a").text
         departure_match = re.search(departure_station_pattern, station_name)
         if departure_match:
-            departure_times[station_name] = extract_time(r"(.*)\s発", row)
+            time_str = extract_time(r"(.*)\s発", row)
+            if time_str:
+                departure_times[station_name] = time_str
+            else:
+                assert station_name == "東京" or station_name == "越後湯沢"
         arrival_match = re.search(arrival_station_pattern, station_name)
         if arrival_match:
-            arrival_times[station_name] = extract_time(r"(.*)\s着", row)
+            time_str = extract_time(r"(.*)\s着", row)
+            if time_str:
+                arrival_times[station_name] = time_str
+            else:
+                assert station_name == "東京" or station_name == "越後湯沢"
 
     for departure_station_name, departure_time in departure_times.items():
         for arrival_station_name, arrival_time in arrival_times.items():
@@ -51,7 +60,12 @@ def get_legs(url: str, departure_station_pattern: str, arrival_station_pattern: 
                 continue
             dep_h, dep_m = map(int, departure_time.split(":"))
             arr_h, arr_m = map(int, arrival_time.split(":"))
-            assert all(0 <= h < 24 for h in [dep_h, arr_h])
+            assert all(0 <= h for h in [dep_h, arr_h])
+            if dep_h >= 24:
+                print("INFO departure >= 24", departure_station_name, departure_time)
+            if arr_h >= 24:
+                print("INFO arrival >= 24", arrival_station_name, arrival_time)
+
             assert all(0 <= m < 60 for m in [dep_m, arr_m])
             legs.append(Leg(
                 departure_station=departure_station_name,
@@ -80,7 +94,7 @@ def get_legs_from_timetable(timetable_url: str, departure_station_pattern: str, 
             all_legs.extend(get_legs(abs_url, departure_station_pattern, arrival_station_pattern, line_name, is_holiday))
             # break early while developing
             break
-        break
+        # break
     return all_legs
 
 

@@ -3,8 +3,8 @@ module way2ski-backend
 go 1.21.5
 
 require (
+	github.com/mattn/go-sqlite3 v1.14.22
 	google.golang.org/grpc v1.61.1
-	google.golang.org/grpc/examples v0.0.0-20240220231222-76a23bf37a7c
 	google.golang.org/protobuf v1.32.0
 )
 

@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "way2ski-backend/proto";
 
 package main;
@@ -16,17 +14,26 @@ message Params {
   bool isHoliday = 3;
 }
 
-message Leg {
-  google.protobuf.Timestamp departureTime = 1;
-  google.protobuf.Timestamp arrivalTime = 2;
+message OneCandidateInLeg {
+  string lineName = 1;
+  string departureStation = 2;
+  uint32 departureHour = 3;
+  uint32 departureMinute = 4;
+
+  string arrivalStation = 5;
+  uint32 arrivalHour = 6;
+  uint32 arrivalMinute = 7;
 }
 
-message LineInfo {
-  string lineName = 1;
-  repeated Leg trainTimesToSki = 2;
-  repeated Leg trainTimesHome = 3;
+message CandidatesInOneLeg {
+  repeated OneCandidateInLeg candidatesInOneLeg = 1;
+}
+
+message AllLegsInOneWay {
+  repeated CandidatesInOneLeg allLegsInOneWay = 1;
 }
 
 message Lines {
-  repeated LineInfo lines = 1;
+  AllLegsInOneWay allLegsToSki = 1;
+  AllLegsInOneWay allLegsHome = 2;
 }
