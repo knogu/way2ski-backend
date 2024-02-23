@@ -14,7 +14,7 @@ message GetLinesRequest {
   bool is_holiday = 3;
 }
 
-message OneCandidateInLeg {
+message Run {
   string line_name = 1;
   string departure_station = 2;
   uint32 departure_hour = 3;
@@ -25,15 +25,11 @@ message OneCandidateInLeg {
   uint32 arrival_minute = 7;
 }
 
-message CandidatesInOneLeg {
-  repeated OneCandidateInLeg candidates_in_one_leg = 1;
-}
-
-message AllLegsInOneWay {
-  repeated CandidatesInOneLeg all_legs_in_one_way = 1;
+message Leg {
+  repeated Run runs = 1;
 }
 
 message GetLinesResponse {
-  AllLegsInOneWay all_legs_to_ski = 1;
-  AllLegsInOneWay all_legs_home = 2;
+  repeated Leg all_legs_to_ski = 1;
+  repeated Leg all_legs_home = 2;
 }

@@ -38,8 +38,8 @@ type Leg struct {
 	IsHoliday        int
 }
 
-func convLegToRespType(leg Leg) way.OneCandidateInLeg {
-	return way.OneCandidateInLeg{
+func convLegToRespType(leg Leg) way.Run {
+	return way.Run{
 		LineName:         leg.LineName,
 		DepartureStation: leg.DepartureStation,
 		DepartureHour:    uint32(leg.DepartureHour),
@@ -50,7 +50,7 @@ func convLegToRespType(leg Leg) way.OneCandidateInLeg {
 	}
 }
 
-func getLegsFromDb(departureStation string, arrivalStation string, isHoliday bool) way.CandidatesInOneLeg {
+func getLegsFromDb(departureStation string, arrivalStation string, isHoliday bool) way.Leg {
 	rows, err := db.Query(`
 		SELECT * FROM legs 
 		WHERE departure_station = ? 
@@ -63,7 +63,7 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 	}
 	defer rows.Close()
 
-	var legsRespType []*way.OneCandidateInLeg
+	var legsRespType []*way.Run
 	for rows.Next() {
 		var leg Leg
 		err = rows.Scan(&leg.LineName, &leg.DepartureStation, &leg.DepartureHour, &leg.DepartureMinute, &leg.ArrivalStation, &leg.ArrivalHour, &leg.ArrivalMinute, &leg.IsHoliday)
@@ -78,14 +78,14 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 	if err != nil {
 		log.Fatal(err)
 	}
-	return way.CandidatesInOneLeg{
-		CandidatesInOneLeg: legsRespType,
+	return way.Leg{
+		Runs: legsRespType,
 	}
 }
 
-func getLegs(curStation string, arrivalStation string, cur2nextStation map[string]string, isHoliday bool) way.AllLegsInOneWay {
+func getLegs(curStation string, arrivalStation string, cur2nextStation map[string]string, isHoliday bool) []*way.Leg {
 	println("GetLegs called")
-	var ret []*way.CandidatesInOneLeg
+	var ret []*way.Leg
 	for {
 		println(curStation)
 		if curStation == arrivalStation {
@@ -100,31 +100,27 @@ func getLegs(curStation string, arrivalStation string, cur2nextStation map[strin
 		curStation = nextStation
 	}
 	println("GetLegs returning...")
-	return way.AllLegsInOneWay{
-		AllLegsInOneWay: ret,
-	}
+	return ret
 }
 
-func getLegsHome(req *connect.Request[way.GetLinesRequest]) *way.AllLegsInOneWay {
+func getLegsHome(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
 	println("GetLegsHome called")
 	cur2nextStationHome := map[string]string{
 		req.Msg.SkiResort: ECHIGOYUZAWA,
 		ECHIGOYUZAWA:      TOKYO,
 		TOKYO:             req.Msg.HometownStation,
 	}
-	v := getLegs(req.Msg.SkiResort, req.Msg.HometownStation, cur2nextStationHome, req.Msg.IsHoliday)
-	return &v
+	return getLegs(req.Msg.SkiResort, req.Msg.HometownStation, cur2nextStationHome, req.Msg.IsHoliday)
 }
 
-func getLegsToSki(req *connect.Request[way.GetLinesRequest]) *way.AllLegsInOneWay {
+func getLegsToSki(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
 	println("GetLegToSki called")
 	cur2nextStationToSki := map[string]string{
 		req.Msg.HometownStation: TOKYO,
 		TOKYO:                   ECHIGOYUZAWA,
 		ECHIGOYUZAWA:            req.Msg.SkiResort,
 	}
-	v := getLegs(req.Msg.HometownStation, req.Msg.SkiResort, cur2nextStationToSki, req.Msg.IsHoliday)
-	return &v
+	return getLegs(req.Msg.HometownStation, req.Msg.SkiResort, cur2nextStationToSki, req.Msg.IsHoliday)
 }
 
 func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLinesRequest]) (*connect.Response[way.GetLinesResponse], error) {
