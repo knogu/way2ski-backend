@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+option go_package = "way2ski-backend/gen/way/v1;wayv1";
+
+package way.v1;
+
+service WayService {
+  rpc GetLines(GetLinesRequest) returns (GetLinesResponse) {}
+}
+
+message GetLinesRequest {
+  string hometown_station = 1;
+  string ski_resort = 2;
+  bool is_holiday = 3;
+}
+
+message OneCandidateInLeg {
+  string line_name = 1;
+  string departure_station = 2;
+  uint32 departure_hour = 3;
+  uint32 departure_minute = 4;
+
+  string arrival_station = 5;
+  uint32 arrival_hour = 6;
+  uint32 arrival_minute = 7;
+}
+
+message CandidatesInOneLeg {
+  repeated OneCandidateInLeg candidates_in_one_leg = 1;
+}
+
+message AllLegsInOneWay {
+  repeated CandidatesInOneLeg all_legs_in_one_way = 1;
+}
+
+message GetLinesResponse {
+  AllLegsInOneWay all_legs_to_ski = 1;
+  AllLegsInOneWay all_legs_home = 2;
+}

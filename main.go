@@ -4,14 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"google.golang.org/grpc/reflection"
+	"github.com/bufbuild/connect-go"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"log"
-	"net"
+	"net/http"
 
 	_ "github.com/mattn/go-sqlite3"
-	"google.golang.org/grpc"
-	pb "way2ski-backend/proto"
+	way "way2ski-backend/gen/way/v1"
+	"way2ski-backend/gen/way/v1/wayv1connect"
 )
 
 const (
@@ -20,11 +21,10 @@ const (
 )
 
 var (
-	port = flag.Int("port", 50051, "The server port")
+	port = flag.Int("port", 50051, "The WayServer port")
 )
 
-type server struct {
-	pb.UnimplementedWayServiceServer
+type WayServer struct {
 }
 
 type Leg struct {
@@ -38,8 +38,8 @@ type Leg struct {
 	IsHoliday        int
 }
 
-func convLegToRespType(leg Leg) pb.OneCandidateInLeg {
-	return pb.OneCandidateInLeg{
+func convLegToRespType(leg Leg) way.OneCandidateInLeg {
+	return way.OneCandidateInLeg{
 		LineName:         leg.LineName,
 		DepartureStation: leg.DepartureStation,
 		DepartureHour:    uint32(leg.DepartureHour),
@@ -50,7 +50,7 @@ func convLegToRespType(leg Leg) pb.OneCandidateInLeg {
 	}
 }
 
-func getLegsFromDb(departureStation string, arrivalStation string, isHoliday bool) pb.CandidatesInOneLeg {
+func getLegsFromDb(departureStation string, arrivalStation string, isHoliday bool) way.CandidatesInOneLeg {
 	rows, err := db.Query(`
 		SELECT * FROM legs 
 		WHERE departure_station = ? 
@@ -63,7 +63,7 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 	}
 	defer rows.Close()
 
-	var legsRespType []*pb.OneCandidateInLeg
+	var legsRespType []*way.OneCandidateInLeg
 	for rows.Next() {
 		var leg Leg
 		err = rows.Scan(&leg.LineName, &leg.DepartureStation, &leg.DepartureHour, &leg.DepartureMinute, &leg.ArrivalStation, &leg.ArrivalHour, &leg.ArrivalMinute, &leg.IsHoliday)
@@ -78,14 +78,14 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 	if err != nil {
 		log.Fatal(err)
 	}
-	return pb.CandidatesInOneLeg{
+	return way.CandidatesInOneLeg{
 		CandidatesInOneLeg: legsRespType,
 	}
 }
 
-func getLegs(curStation string, arrivalStation string, cur2nextStation map[string]string, isHoliday bool) pb.AllLegsInOneWay {
+func getLegs(curStation string, arrivalStation string, cur2nextStation map[string]string, isHoliday bool) way.AllLegsInOneWay {
 	println("GetLegs called")
-	var ret []*pb.CandidatesInOneLeg
+	var ret []*way.CandidatesInOneLeg
 	for {
 		println(curStation)
 		if curStation == arrivalStation {
@@ -100,42 +100,41 @@ func getLegs(curStation string, arrivalStation string, cur2nextStation map[strin
 		curStation = nextStation
 	}
 	println("GetLegs returning...")
-	return pb.AllLegsInOneWay{
+	return way.AllLegsInOneWay{
 		AllLegsInOneWay: ret,
 	}
 }
 
-func getLegsHome(in *pb.Params) *pb.AllLegsInOneWay {
+func getLegsHome(req *connect.Request[way.GetLinesRequest]) *way.AllLegsInOneWay {
 	println("GetLegsHome called")
 	cur2nextStationHome := map[string]string{
-		in.SkiResort: ECHIGOYUZAWA,
-		ECHIGOYUZAWA: TOKYO,
-		TOKYO:        in.HometownStation,
+		req.Msg.SkiResort: ECHIGOYUZAWA,
+		ECHIGOYUZAWA:      TOKYO,
+		TOKYO:             req.Msg.HometownStation,
 	}
-	v := getLegs(in.SkiResort, in.HometownStation, cur2nextStationHome, in.IsHoliday)
+	v := getLegs(req.Msg.SkiResort, req.Msg.HometownStation, cur2nextStationHome, req.Msg.IsHoliday)
 	return &v
 }
 
-func getLegsToSki(in *pb.Params) *pb.AllLegsInOneWay {
+func getLegsToSki(req *connect.Request[way.GetLinesRequest]) *way.AllLegsInOneWay {
 	println("GetLegToSki called")
 	cur2nextStationToSki := map[string]string{
-		in.HometownStation: TOKYO,
-		TOKYO:              ECHIGOYUZAWA,
-		ECHIGOYUZAWA:       in.SkiResort,
+		req.Msg.HometownStation: TOKYO,
+		TOKYO:                   ECHIGOYUZAWA,
+		ECHIGOYUZAWA:            req.Msg.SkiResort,
 	}
-	v := getLegs(in.HometownStation, in.SkiResort, cur2nextStationToSki, in.IsHoliday)
+	v := getLegs(req.Msg.HometownStation, req.Msg.SkiResort, cur2nextStationToSki, req.Msg.IsHoliday)
 	return &v
 }
 
-func (s *server) GetLines(ctx context.Context, in *pb.Params) (*pb.Lines, error) {
+func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLinesRequest]) (*connect.Response[way.GetLinesResponse], error) {
 	println("GetLines called")
-	in.HometownStation = "四ツ谷"
-	in.SkiResort = "かぐらスキー場"
-	in.IsHoliday = true
-	return &pb.Lines{
-		AllLegsToSki: getLegsToSki(in),
-		AllLegsHome:  getLegsHome(in),
-	}, nil
+
+	res := connect.NewResponse(&way.GetLinesResponse{
+		AllLegsToSki: getLegsToSki(req),
+		AllLegsHome:  getLegsHome(req),
+	})
+	return res, nil
 }
 
 var db *sql.DB
@@ -148,16 +147,13 @@ func main() {
 	}
 	defer db.Close()
 
-	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	pb.RegisterWayServiceServer(s, &server{})
-	reflection.Register(s)
-	log.Printf("server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+	server := &WayServer{}
+	mux := http.NewServeMux()
+	path, handler := wayv1connect.NewWayServiceHandler(server)
+	mux.Handle(path, handler)
+	http.ListenAndServe(
+		"localhost:8080",
+		// Use h2c so we can serve HTTP/2 without TLS.
+		h2c.NewHandler(mux, &http2.Server{}),
+	)
 }
