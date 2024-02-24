@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"flag"
 	"github.com/bufbuild/connect-go"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
@@ -19,10 +18,6 @@ import (
 const (
 	ECHIGOYUZAWA = "越後湯沢"
 	TOKYO        = "東京"
-)
-
-var (
-	port = flag.Int("port", 50051, "The WayServer port")
 )
 
 type WayServer struct {
@@ -85,10 +80,8 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 }
 
 func getLegs(curStation string, arrivalStation string, cur2nextStation map[string]string, isHoliday bool) []*way.Leg {
-	println("GetLegs called")
 	var ret []*way.Leg
 	for {
-		println(curStation)
 		if curStation == arrivalStation {
 			break
 		}
@@ -100,12 +93,10 @@ func getLegs(curStation string, arrivalStation string, cur2nextStation map[strin
 		ret = append(ret, &v)
 		curStation = nextStation
 	}
-	println("GetLegs returning...")
 	return ret
 }
 
 func getLegsHome(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
-	println("GetLegsHome called")
 	cur2nextStationHome := map[string]string{
 		req.Msg.SkiResort: ECHIGOYUZAWA,
 		ECHIGOYUZAWA:      TOKYO,
@@ -115,7 +106,6 @@ func getLegsHome(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
 }
 
 func getLegsToSki(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
-	println("GetLegToSki called")
 	cur2nextStationToSki := map[string]string{
 		req.Msg.HometownStation: TOKYO,
 		TOKYO:                   ECHIGOYUZAWA,
@@ -125,8 +115,6 @@ func getLegsToSki(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
 }
 
 func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLinesRequest]) (*connect.Response[way.GetLinesResponse], error) {
-	println("GetLines called")
-
 	res := connect.NewResponse(&way.GetLinesResponse{
 		AllLegsToSki: getLegsToSki(req),
 		AllLegsHome:  getLegsHome(req),
