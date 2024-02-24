@@ -85,6 +85,7 @@ func getLegs(curStation string, arrivalStation string, cur2nextStation map[strin
 		if curStation == arrivalStation {
 			break
 		}
+		println(curStation)
 		nextStation, ok := cur2nextStation[curStation]
 		if !ok {
 			panic("err")
@@ -107,9 +108,11 @@ func getLegsHome(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
 
 func getLegsToSki(req *connect.Request[way.GetLinesRequest]) []*way.Leg {
 	cur2nextStationToSki := map[string]string{
-		req.Msg.HometownStation: TOKYO,
-		TOKYO:                   ECHIGOYUZAWA,
-		ECHIGOYUZAWA:            req.Msg.SkiResort,
+		TOKYO:        ECHIGOYUZAWA,
+		ECHIGOYUZAWA: req.Msg.SkiResort,
+	}
+	if req.Msg.HometownStation != TOKYO {
+		cur2nextStationToSki[req.Msg.HometownStation] = TOKYO
 	}
 	return getLegs(req.Msg.HometownStation, req.Msg.SkiResort, cur2nextStationToSki, req.Msg.IsHoliday)
 }
