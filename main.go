@@ -52,6 +52,7 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 		WHERE departure_station = ? 
 		AND arrival_station = ? 
 		AND is_holiday = ?
+		ORDER BY departure_hour, departure_minute
 	`, departureStation, arrivalStation, isHoliday)
 
 	if err != nil {
