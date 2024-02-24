@@ -128,6 +128,7 @@ func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLi
 var db *sql.DB
 
 func main() {
+	println("main called")
 	var err error
 	db, err = sql.Open("sqlite3", "./train_bus_time/train_bus_time.db")
 	if err != nil {
@@ -140,8 +141,9 @@ func main() {
 	path, handler := wayv1connect.NewWayServiceHandler(server)
 	mux.Handle(path, handler)
 	corsHandler := cors.AllowAll().Handler(h2c.NewHandler(mux, &http2.Server{}))
+	println("start serving")
 	http.ListenAndServe(
-		"localhost:8080",
+		"0.0.0.0:8080",
 		corsHandler,
 	)
 }
