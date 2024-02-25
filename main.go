@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/bufbuild/connect-go"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
@@ -129,6 +130,11 @@ func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLi
 
 var db *sql.DB
 
+func health(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "OK")
+}
+
 func main() {
 	var err error
 	db, err = sql.Open("sqlite3", "./train_bus_time/train_bus_time.db")
@@ -141,6 +147,7 @@ func main() {
 	mux := http.NewServeMux()
 	path, handler := wayv1connect.NewWayServiceHandler(server)
 	mux.Handle(path, handler)
+	mux.Handle("/health", http.HandlerFunc(health))
 	corsHandler := cors.AllowAll().Handler(h2c.NewHandler(mux, &http2.Server{}))
 	println("start serving")
 	http.ListenAndServe(
