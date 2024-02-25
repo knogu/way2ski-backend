@@ -26,7 +26,9 @@ message Run {
 }
 
 message Leg {
-  repeated Run runs = 1;
+  string departure_station = 1;
+  string arrival_station = 2;
+  repeated Run runs = 3;
 }
 
 message GetLinesResponse {

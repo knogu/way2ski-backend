@@ -46,7 +46,7 @@ func convLegToRespType(leg Leg) way.Run {
 	}
 }
 
-func getLegsFromDb(departureStation string, arrivalStation string, isHoliday bool) way.Leg {
+func getLegFromDb(departureStation string, arrivalStation string, isHoliday bool) way.Leg {
 	rows, err := db.Query(`
 		SELECT * FROM legs 
 		WHERE departure_station = ? 
@@ -60,7 +60,7 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 	}
 	defer rows.Close()
 
-	var legsRespType []*way.Run
+	var runs []*way.Run
 	for rows.Next() {
 		var leg Leg
 		err = rows.Scan(&leg.LineName, &leg.DepartureStation, &leg.DepartureHour, &leg.DepartureMinute, &leg.ArrivalStation, &leg.ArrivalHour, &leg.ArrivalMinute, &leg.IsHoliday)
@@ -68,7 +68,7 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 			log.Fatal(err)
 		}
 		v := convLegToRespType(leg)
-		legsRespType = append(legsRespType, &v)
+		runs = append(runs, &v)
 	}
 
 	err = rows.Err()
@@ -76,7 +76,9 @@ func getLegsFromDb(departureStation string, arrivalStation string, isHoliday boo
 		log.Fatal(err)
 	}
 	return way.Leg{
-		Runs: legsRespType,
+		DepartureStation: departureStation,
+		ArrivalStation:   arrivalStation,
+		Runs:             runs,
 	}
 }
 
@@ -86,12 +88,11 @@ func getLegs(curStation string, arrivalStation string, cur2nextStation map[strin
 		if curStation == arrivalStation {
 			break
 		}
-		println(curStation)
 		nextStation, ok := cur2nextStation[curStation]
 		if !ok {
 			panic("err")
 		}
-		v := getLegsFromDb(curStation, nextStation, isHoliday)
+		v := getLegFromDb(curStation, nextStation, isHoliday)
 		ret = append(ret, &v)
 		curStation = nextStation
 	}
@@ -129,7 +130,6 @@ func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLi
 var db *sql.DB
 
 func main() {
-	println("main called")
 	var err error
 	db, err = sql.Open("sqlite3", "./train_bus_time/train_bus_time.db")
 	if err != nil {
