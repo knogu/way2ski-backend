@@ -4,6 +4,7 @@ go 1.21.5
 
 require (
 	github.com/bufbuild/connect-go v1.10.0
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/rs/cors v1.10.1
 	golang.org/x/net v0.21.0

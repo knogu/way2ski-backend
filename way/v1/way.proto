@@ -1,11 +1,20 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 option go_package = "way2ski-backend/gen/way/v1;wayv1";
 
 package way.v1;
 
 service WayService {
   rpc GetLines(GetLinesRequest) returns (GetLinesResponse) {}
+  rpc GetHometownStations(google.protobuf.Empty) returns (GetHometownStationsResponse) {}
+}
+
+message GetHometownStationsRequest {}
+
+message GetHometownStationsResponse {
+  repeated string hometown_stations = 1;
 }
 
 message GetLinesRequest {

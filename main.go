@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"github.com/bufbuild/connect-go"
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"net/http"
 
@@ -83,6 +84,39 @@ func getLegFromDb(departureStation string, arrivalStation string, isHoliday bool
 	}
 }
 
+func getHometownStationsFromDb() []string {
+	lineNames := []string{"中央線"}
+
+	query := `
+    SELECT DISTINCT departure_station FROM legs
+    WHERE line_name IN (?)`
+	query, args, err := sqlx.In(query, lineNames)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	query = db.Rebind(query)
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var hometownStations []string
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			log.Fatal(err)
+		}
+		hometownStations = append(hometownStations, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return hometownStations
+}
+
 func getLegs(curStation string, arrivalStation string, cur2nextStation map[string]string, isHoliday bool) []*way.Leg {
 	var ret []*way.Leg
 	for {
@@ -128,7 +162,14 @@ func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLi
 	return res, nil
 }
 
-var db *sql.DB
+func (s *WayServer) GetHometownStations(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[way.GetHometownStationsResponse], error) {
+	res := connect.NewResponse(&way.GetHometownStationsResponse{
+		HometownStations: getHometownStationsFromDb(),
+	})
+	return res, nil
+}
+
+var db *sqlx.DB
 
 func health(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -137,7 +178,7 @@ func health(w http.ResponseWriter, _ *http.Request) {
 
 func main() {
 	var err error
-	db, err = sql.Open("sqlite3", "./train_bus_time/train_bus_time.db")
+	db, err = sqlx.Connect("sqlite3", "./train_bus_time/train_bus_time.db")
 	if err != nil {
 		log.Fatal(err)
 	}
