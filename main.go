@@ -8,7 +8,6 @@ import (
 	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"log"
 	"net/http"
 
@@ -162,7 +161,7 @@ func (s *WayServer) GetLines(ctx context.Context, req *connect.Request[way.GetLi
 	return res, nil
 }
 
-func (s *WayServer) GetHometownStations(ctx context.Context, req *connect.Request[emptypb.Empty]) (*connect.Response[way.GetHometownStationsResponse], error) {
+func (s *WayServer) GetHometownStations(ctx context.Context, req *connect.Request[way.GetHometownStationsRequest]) (*connect.Response[way.GetHometownStationsResponse], error) {
 	res := connect.NewResponse(&way.GetHometownStationsResponse{
 		HometownStations: getHometownStationsFromDb(),
 	})

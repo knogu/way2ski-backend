@@ -8,7 +8,6 @@ import (
 	context "context"
 	errors "errors"
 	connect_go "github.com/bufbuild/connect-go"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	http "net/http"
 	strings "strings"
 	v1 "way2ski-backend/gen/way/v1"
@@ -44,7 +43,7 @@ const (
 // WayServiceClient is a client for the way.v1.WayService service.
 type WayServiceClient interface {
 	GetLines(context.Context, *connect_go.Request[v1.GetLinesRequest]) (*connect_go.Response[v1.GetLinesResponse], error)
-	GetHometownStations(context.Context, *connect_go.Request[emptypb.Empty]) (*connect_go.Response[v1.GetHometownStationsResponse], error)
+	GetHometownStations(context.Context, *connect_go.Request[v1.GetHometownStationsRequest]) (*connect_go.Response[v1.GetHometownStationsResponse], error)
 }
 
 // NewWayServiceClient constructs a client for the way.v1.WayService service. By default, it uses
@@ -62,7 +61,7 @@ func NewWayServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts 
 			baseURL+WayServiceGetLinesProcedure,
 			opts...,
 		),
-		getHometownStations: connect_go.NewClient[emptypb.Empty, v1.GetHometownStationsResponse](
+		getHometownStations: connect_go.NewClient[v1.GetHometownStationsRequest, v1.GetHometownStationsResponse](
 			httpClient,
 			baseURL+WayServiceGetHometownStationsProcedure,
 			opts...,
@@ -73,7 +72,7 @@ func NewWayServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts 
 // wayServiceClient implements WayServiceClient.
 type wayServiceClient struct {
 	getLines            *connect_go.Client[v1.GetLinesRequest, v1.GetLinesResponse]
-	getHometownStations *connect_go.Client[emptypb.Empty, v1.GetHometownStationsResponse]
+	getHometownStations *connect_go.Client[v1.GetHometownStationsRequest, v1.GetHometownStationsResponse]
 }
 
 // GetLines calls way.v1.WayService.GetLines.
@@ -82,14 +81,14 @@ func (c *wayServiceClient) GetLines(ctx context.Context, req *connect_go.Request
 }
 
 // GetHometownStations calls way.v1.WayService.GetHometownStations.
-func (c *wayServiceClient) GetHometownStations(ctx context.Context, req *connect_go.Request[emptypb.Empty]) (*connect_go.Response[v1.GetHometownStationsResponse], error) {
+func (c *wayServiceClient) GetHometownStations(ctx context.Context, req *connect_go.Request[v1.GetHometownStationsRequest]) (*connect_go.Response[v1.GetHometownStationsResponse], error) {
 	return c.getHometownStations.CallUnary(ctx, req)
 }
 
 // WayServiceHandler is an implementation of the way.v1.WayService service.
 type WayServiceHandler interface {
 	GetLines(context.Context, *connect_go.Request[v1.GetLinesRequest]) (*connect_go.Response[v1.GetLinesResponse], error)
-	GetHometownStations(context.Context, *connect_go.Request[emptypb.Empty]) (*connect_go.Response[v1.GetHometownStationsResponse], error)
+	GetHometownStations(context.Context, *connect_go.Request[v1.GetHometownStationsRequest]) (*connect_go.Response[v1.GetHometownStationsResponse], error)
 }
 
 // NewWayServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -127,6 +126,6 @@ func (UnimplementedWayServiceHandler) GetLines(context.Context, *connect_go.Requ
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("way.v1.WayService.GetLines is not implemented"))
 }
 
-func (UnimplementedWayServiceHandler) GetHometownStations(context.Context, *connect_go.Request[emptypb.Empty]) (*connect_go.Response[v1.GetHometownStationsResponse], error) {
+func (UnimplementedWayServiceHandler) GetHometownStations(context.Context, *connect_go.Request[v1.GetHometownStationsRequest]) (*connect_go.Response[v1.GetHometownStationsResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("way.v1.WayService.GetHometownStations is not implemented"))
 }
