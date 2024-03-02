@@ -84,7 +84,7 @@ func getLegFromDb(departureStation string, arrivalStation string, isHoliday bool
 }
 
 func getHometownStationsFromDb() []string {
-	lineNames := []string{"中央線"}
+	lineNames := []string{"中央線", "山手線"}
 
 	query := `
     SELECT DISTINCT departure_station FROM legs
