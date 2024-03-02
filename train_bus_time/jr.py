@@ -40,7 +40,7 @@ def get_soup(url):
 
 
 # url: 列車詳細のurl
-def get_legs(url: str, departure_station_pattern: str, arrival_station_pattern: str, line_name: str, is_holiday: bool, either_must_be = "", is_departure_arrival_check_loose = False):
+def get_legs(url: str, departure_station_pattern: str, arrival_station_pattern: str, line_name: str, is_holiday: bool, either_must_be = ""):
     rows = get_soup(url).find_all("tr", class_="time")
     departure_times = {}  # station name -> departure time
     arrival_times = {}  # station name -> arrival time
@@ -54,24 +54,17 @@ def get_legs(url: str, departure_station_pattern: str, arrival_station_pattern: 
             time_str = extract_time(r"(.*)\s発", row)
             if time_str:
                 departure_times[station_name] = time_str
-            elif is_departure_arrival_check_loose:
-                if station_name not in departure_times:
-                    print("INFO only arrival time found in yamanote-line", station_name)
-            else:
-                assert station_name == "東京" or station_name == "越後湯沢"
         arrival_match = re.search(arrival_station_pattern, station_name)
         if arrival_match:
             time_str = extract_time(r"(.*)\s着", row)
             if time_str:
                 arrival_times[station_name] = time_str
-            elif is_departure_arrival_check_loose:
+            else:
                 time_str = extract_time(r"(.*)\s発", row)
                 if time_str:
                     arrival_times[station_name] = time_str
                 else:
                     raise Exception("both of arrival and departure not found in", station_name)
-            else:
-                assert station_name == "東京" or station_name == "越後湯沢"
         # print(station_name, arrival_match, departure_match)
 
     for departure_station_name, departure_time in departure_times.items():
@@ -104,7 +97,7 @@ def get_legs(url: str, departure_station_pattern: str, arrival_station_pattern: 
             save(leg)
 
 
-def get_legs_from_timetable(timetable_url: str, departure_station_pattern: str, arrival_station_pattern: str, line_name: str, is_holiday: bool, either_must_be = "", use_departure_time_for_arrival_if_not_found = False):
+def get_legs_from_timetable(timetable_url: str, departure_station_pattern: str, arrival_station_pattern: str, line_name: str, is_holiday: bool, either_must_be = ""):
     soup = get_soup(timetable_url)
     all_tr = soup.find_all('tr')
     for data in all_tr:
@@ -113,7 +106,7 @@ def get_legs_from_timetable(timetable_url: str, departure_station_pattern: str, 
         for run_detail_url in rel_urls_for_details:
             match = re.search(r'train.*', run_detail_url)
             abs_url = 'https://www.jreast-timetable.jp/2402/' + match.group()
-            get_legs(abs_url, departure_station_pattern, arrival_station_pattern, line_name, is_holiday, either_must_be, use_departure_time_for_arrival_if_not_found)
+            get_legs(abs_url, departure_station_pattern, arrival_station_pattern, line_name, is_holiday, either_must_be)
             # break early while developing
             # break
         # break
@@ -139,6 +132,20 @@ url_from_tokyo_weekdays = 'https://www.jreast-timetable.jp/2402/timetable/tt1647
 # get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039050.html",
 #                              r"東京", r"越後湯沢", "上越新幹線", False),
 
+# 京葉線・平日・下り
+get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1500/1500010.html",
+                        r"東京", r".*", "京葉線", False)
+# 京葉線・土休日・下り
+get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1500/1500011.html",
+                        r"東京", r".*", "京葉線", True)
+
+# 京葉線・平日・上り
+get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1500/1500020.html",
+                        r".*", r"東京", "京葉線", False)
+# 京葉線・土休日・上り
+get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1500/1500021.html",
+                        r".*", r"東京", "京葉線", True)
+
 # 山手線内回り・平日
 # get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039120.html",
 #                         r".*", r".*", "山手線", False, "東京", True)
@@ -147,11 +154,11 @@ url_from_tokyo_weekdays = 'https://www.jreast-timetable.jp/2402/timetable/tt1647
 #                         r".*", r".*", "山手線", False, "東京", True),
 
 # 山手線内回り・土休日
-get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039121.html",
-                        r".*", r".*", "山手線内回り", True, "東京", True)
+# get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039121.html",
+#                         r".*", r".*", "山手線内回り", True, "東京", True)
 # 山手線外回り・土休日
-get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039111.html",
-                        r".*", r".*", "山手線外回り", True, "東京", True)
+# get_legs_from_timetable("https://www.jreast-timetable.jp/2402/timetable/tt1039/1039111.html",
+#                         r".*", r".*", "山手線外回り", True, "東京", True)
 
 
 conn.close()
