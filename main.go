@@ -33,6 +33,7 @@ type Leg struct {
 	ArrivalHour      int
 	ArrivalMinute    int
 	IsHoliday        int
+	IsSlow           int
 }
 
 func convLegToRespType(leg Leg) way.Run {
@@ -64,7 +65,7 @@ func getLegFromDb(departureStation string, arrivalStation string, isHoliday bool
 	var runs []*way.Run
 	for rows.Next() {
 		var leg Leg
-		err = rows.Scan(&leg.LineName, &leg.DepartureStation, &leg.DepartureHour, &leg.DepartureMinute, &leg.ArrivalStation, &leg.ArrivalHour, &leg.ArrivalMinute, &leg.IsHoliday)
+		err = rows.Scan(&leg.LineName, &leg.DepartureStation, &leg.DepartureHour, &leg.DepartureMinute, &leg.ArrivalStation, &leg.ArrivalHour, &leg.ArrivalMinute, &leg.IsHoliday, &leg.IsSlow)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -84,11 +85,11 @@ func getLegFromDb(departureStation string, arrivalStation string, isHoliday bool
 }
 
 func getHometownStationsFromDb() []string {
-	lineNames := []string{"中央線", "山手線"}
+	lineNames := []string{"中央線", "山手線内回り", "山手線外回り", "京葉線"}
 
 	query := `
     SELECT DISTINCT departure_station FROM legs
-    WHERE line_name IN (?)`
+    WHERE line_name IN (?) and is_slow=1`
 	query, args, err := sqlx.In(query, lineNames)
 	if err != nil {
 		log.Fatalln(err)

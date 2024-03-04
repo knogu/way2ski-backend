@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 
+from train_bus_time.leg import Leg
 
 conn = sqlite3.connect('./train_bus_time.db')
 
@@ -12,17 +13,6 @@ def extract_time(pattern, row):
     match = re.search(pattern, row.text)
     return match.group(1) if match else None
 
-
-@dataclass
-class Leg:
-    line_name: str
-    departure_station: str
-    departure_hour: int
-    departure_minute: int
-    arrival_station: str
-    arrival_hour: int
-    arrival_minute: int
-    is_holiday: bool
 
 def save(leg: Leg):
     try:
@@ -55,6 +45,7 @@ def get_legs(url: str, line_name: str, is_holiday: bool):
         if station_name == "東京":
             arr_h, arr_m = map(int, arrival_time_str.split(":"))
             for station_name, departure_time in station_to_last_departure_time.items():
+                # TODO: skip if tokyo
                 dep_h, dep_m = map(int, departure_time.split(":"))
                 save(Leg(
                     departure_station=station_name,
