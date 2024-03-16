@@ -54,6 +54,7 @@ func getLegFromDb(departureStation string, arrivalStation string, isHoliday bool
 		WHERE departure_station = ? 
 		AND arrival_station = ? 
 		AND is_holiday = ?
+		AND is_slow = 0
 		ORDER BY departure_hour, departure_minute
 	`, departureStation, arrivalStation, isHoliday)
 
@@ -89,7 +90,7 @@ func getHometownStationsFromDb() []string {
 
 	query := `
     SELECT DISTINCT departure_station FROM legs
-    WHERE line_name IN (?) and is_slow=1`
+    WHERE line_name IN (?)`
 	query, args, err := sqlx.In(query, lineNames)
 	if err != nil {
 		log.Fatalln(err)
